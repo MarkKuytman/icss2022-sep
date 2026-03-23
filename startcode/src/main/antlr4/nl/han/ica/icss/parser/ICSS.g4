@@ -53,7 +53,7 @@ identity: ID_IDENT | CLASS_IDENT | (LOWER_IDENT | CAPITAL_IDENT);
 
 body: style_line*;
 
-style_line: attr_name COLON attr_value SEMICOLON;
+style_line: prop_name COLON prop_value SEMICOLON;
 
-attr_name: LOWER_IDENT;
-attr_value: PIXELSIZE | COLOR ;
+prop_name: LOWER_IDENT;
+prop_value: PIXELSIZE | COLOR ;
