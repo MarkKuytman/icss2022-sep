@@ -28,6 +28,11 @@ CLASS_IDENT: '.' [a-z0-9\-]+;
 LOWER_IDENT: [a-z] [a-z0-9\-]*;
 CAPITAL_IDENT: [A-Z] [A-Za-z0-9_]*;
 
+//Maths components
+DIVTIMES: DIV | MUL ;
+SUBADD: PLUS | MIN ;
+
+
 //All whitespace is skipped
 WS: [ \t\r\n]+ -> skip;
 
@@ -39,21 +44,29 @@ COLON: ':';
 PLUS: '+';
 MIN: '-';
 MUL: '*';
+DIV: '/';
 ASSIGNMENT_OPERATOR: ':=';
 
 
 
 
 //--- PARSER: ---
-stylesheet: style_rule* EOF | EOF;
+stylesheet: assignment* style_rule* EOF | EOF;
 
 style_rule: identity OPEN_BRACE body CLOSE_BRACE;
 
 identity: ID_IDENT | CLASS_IDENT | (LOWER_IDENT | CAPITAL_IDENT);
 
-body: style_line*;
+body: declaration*;
 
-style_line: prop_name COLON prop_value SEMICOLON;
+declaration: prop_name COLON prop_value SEMICOLON;
+assignment: var_name ASSIGNMENT_OPERATOR var_value SEMICOLON;
+expression: (SCALAR | PIXELSIZE | var_name) | expression DIVTIMES expression | expression SUBADD expression;
+
+var_name: CAPITAL_IDENT;
+var_value: COLOR | PIXELSIZE | TRUE | FALSE;
 
 prop_name: LOWER_IDENT;
-prop_value: PIXELSIZE | COLOR ;
+prop_value: PIXELSIZE | COLOR | var_name | expression;
+
+
