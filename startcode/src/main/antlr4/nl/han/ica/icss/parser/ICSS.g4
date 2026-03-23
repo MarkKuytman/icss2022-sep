@@ -57,11 +57,19 @@ style_rule: identity OPEN_BRACE body CLOSE_BRACE;
 
 identity: ID_IDENT | CLASS_IDENT | (LOWER_IDENT | CAPITAL_IDENT);
 
-body: declaration*;
+body: body_content;
+
+body_content: (declaration | if_else)*;
 
 declaration: prop_name COLON prop_value SEMICOLON;
 assignment: var_name ASSIGNMENT_OPERATOR var_value SEMICOLON;
 expression: (SCALAR | PIXELSIZE | var_name) | expression DIVTIMES expression | expression SUBADD expression;
+
+if_else: if_clause else_clause | if_clause ;
+if_clause: IF BOX_BRACKET_OPEN condition BOX_BRACKET_CLOSE OPEN_BRACE body CLOSE_BRACE;
+else_clause: ELSE OPEN_BRACE body CLOSE_BRACE;
+
+condition: var_name;
 
 var_name: CAPITAL_IDENT;
 var_value: COLOR | PIXELSIZE | TRUE | FALSE;

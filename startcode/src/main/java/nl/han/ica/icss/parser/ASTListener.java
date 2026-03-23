@@ -25,6 +25,7 @@ public class ASTListener extends ICSSBaseListener {
 	private IHANStack<ASTNode> currentContainer;
 	private IHANStack<Expression> expressions;
 
+
 	public ASTListener() {
 		ast = new AST();
 		currentContainer = new HANStack<>();
@@ -165,5 +166,37 @@ public class ASTListener extends ICSSBaseListener {
 		exp.addChild(exp_left);
 		exp.addChild(exp_right);
 		expressions.push(exp);
+	}
+
+	@Override
+	public void enterIf_clause(ICSSParser.If_clauseContext ctx) {
+		currentContainer.push(new IfClause());
+	}
+
+	@Override
+	public void exitIf_clause(ICSSParser.If_clauseContext ctx) {
+		ASTUtils.addChildToParent(currentContainer);
+	}
+
+	@Override
+	public void enterElse_clause(ICSSParser.Else_clauseContext ctx) {
+		currentContainer.push(new ElseClause());
+	}
+
+	@Override
+	public void exitElse_clause(ICSSParser.Else_clauseContext ctx) {
+		ASTNode node = currentContainer.pop();
+		ASTNode parent = currentContainer.peek();
+
+		if (!parent.getChildren().isEmpty()) {
+			ASTNode lastChild = parent.getChildren().get(
+									parent.getChildren().size() - 1);
+
+			if (lastChild instanceof IfClause) {
+				lastChild.addChild(node);
+			}
+		}
+
+		// Uhh exception maybe?
 	}
 }
