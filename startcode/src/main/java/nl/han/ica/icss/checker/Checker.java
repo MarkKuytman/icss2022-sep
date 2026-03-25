@@ -4,9 +4,14 @@ import nl.han.ica.datastructures.HANLinkedList;
 import nl.han.ica.datastructures.IHANLinkedList;
 import nl.han.ica.icss.ast.*;
 import nl.han.ica.icss.ast.literals.*;
+import nl.han.ica.icss.ast.operations.AddOperation;
+import nl.han.ica.icss.ast.operations.DivideOperation;
+import nl.han.ica.icss.ast.operations.MultiplyOperation;
+import nl.han.ica.icss.ast.operations.SubtractOperation;
 import nl.han.ica.icss.ast.types.ExpressionType;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.locks.Condition;
 
@@ -33,11 +38,13 @@ public class Checker {
 
         if (node instanceof VariableAssignment) {
             createVariableAssignment((VariableAssignment) node);
-        } else if (node instanceof Expression) {                                    /// Controleert verdere plekken waar expressies gebruikt worden
+        } else if (node instanceof VariableReference) {                                    /// Controleert verdere plekken waar expressies gebruikt worden
             checkVariableIsDefined((VariableReference) node);
         } else if (node instanceof Declaration) {
             Declaration declaration = (Declaration) node;
-            checkVariableIsDefined((VariableReference) declaration.expression);
+            checkExpressionType(declaration.expression);
+        } else if (node instanceof Expression) {
+            checkExpressionType((Expression) node);
         }
 
         visitChildren(node);
@@ -45,40 +52,9 @@ public class Checker {
 
     private void createVariableAssignment(VariableAssignment node) {
         VariableReference varRef = node.name;
-        ExpressionType type = ExpressionType.UNDEFINED;
-
-        Expression expression = node.expression;
-
-        if (!expression.getChildren().isEmpty()) {
-            ASTNode childNode = expression.getChildren().get(0);
-
-            if (childNode instanceof BoolLiteral) {
-                type = ExpressionType.BOOL;
-            } else if (childNode instanceof PixelLiteral) {
-                type = ExpressionType.PIXEL;
-            } else if (childNode instanceof PercentageLiteral) {
-                type = ExpressionType.PERCENTAGE;
-            } else if (childNode instanceof ColorLiteral) {
-                type = ExpressionType.COLOR;
-            } else if (childNode instanceof ScalarLiteral) {
-                type = ExpressionType.SCALAR;
-            } else if (childNode instanceof VariableReference) {
-                String refName = ((VariableReference) childNode).name;
-                ExpressionType refType = ExpressionType.UNDEFINED;
-                for (int i = 0; i < variableTypes.getSize(); i++) {
-                    HashMap<String, ExpressionType> scope = variableTypes.get(i);
-                    if (scope.containsKey(refName)) {
-                        refType = scope.get(refName);
-                        break;
-                    }
-                }
-                type = refType;
-            }
-
-        }
+        ExpressionType type = checkExpressionType(node.expression);
         variableTypes.getFirst().put(varRef.name, type);
     }
-
 
 
     /// CH01: Controleer of er geen variabelen worden gebruikt die niet gedefinieerd zijn
@@ -95,18 +71,104 @@ public class Checker {
         if (!found) variableReference.setError("Undefined variable: " + name);
     }
 
-    /// CH02: Controleer of de operanden van de operaties plus en min van gelijk type zijn
-    private void checkExpressionTypeIsAllowed(Expression expression) {
-        if (expression.getChildren().size() == 3) {
-            Expression lhs = (Expression) expression.getChildren().get(0);
-            Expression rhs = (Expression) expression.getChildren().get(2);
+    /// CH02 + meer: Recursive controle op alle mogelijke expression types
+    private ExpressionType checkExpressionType(Expression expr) {
+        if (expr == null) return ExpressionType.UNDEFINED;
 
-            if ()
+        /// Literals: directe waardes
+        if (expr instanceof BoolLiteral) return ExpressionType.BOOL;
+        if (expr instanceof PixelLiteral) return ExpressionType.PIXEL;
+        if (expr instanceof PercentageLiteral) return ExpressionType.PERCENTAGE;
+        if (expr instanceof ColorLiteral) return ExpressionType.COLOR;
+        if (expr instanceof ScalarLiteral) return ExpressionType.SCALAR;
 
+        if (expr instanceof VariableReference) {
+            String refName = ((VariableReference) expr).name;
+            ExpressionType refType = lookupVariableType(refName);
+            if (refType == ExpressionType.UNDEFINED) {
+                expr.setError("Undefined variable: " + refName);
+            }
+            return refType;
         }
 
+        /// Operations: Waardes worden recursief uit de expressions gehaald.
+        if (expr instanceof AddOperation || expr instanceof SubtractOperation
+                || expr instanceof MultiplyOperation || expr instanceof DivideOperation) {
+
+            Expression lhs = (Expression) expr.getChildren().get(0);
+            Expression rhs = (Expression) expr.getChildren().get(1);
+
+            ExpressionType lhsType = checkExpressionType(lhs);
+            ExpressionType rhsType = checkExpressionType(rhs);
+
+            /// Geeft mogelijk 'UNDEFINED' mee naar niveau hier boven
+            if (lhsType == ExpressionType.UNDEFINED || rhsType == ExpressionType.UNDEFINED) {
+                return ExpressionType.UNDEFINED;
+            }
+
+            if (isNonNumeric(lhsType) || isNonNumeric(rhsType)) {
+                expr.setError("Invalid expression type for mathematics: " + lhsType + " and/or " + rhsType);
+                return ExpressionType.UNDEFINED;
+            }
+
+            /// '+/-': type waardes moeten gelijk zijn.
+            if (expr instanceof AddOperation || expr instanceof SubtractOperation) {
+                if (lhsType != rhsType) {
+                    expr.setError("Expressions of + and - must have the same type (" + lhsType + " +/- " + rhsType + ")");
+                    return ExpressionType.UNDEFINED;
+                }
+                return lhsType;
+            }
+
+            /// '*': vereist minimaal 1 SCALA type
+            if (expr instanceof MultiplyOperation) {
+                if (isUnitType(lhsType) && isUnitType(rhsType)) {
+                    expr.setError("Cannot multiply two unit types (" + lhsType + " * " + rhsType + ")");
+                    return ExpressionType.UNDEFINED;
+                }
+                if (lhsType == ExpressionType.SCALAR) return rhsType;
+                if (rhsType == ExpressionType.SCALAR) return lhsType;
+                expr.setError("Multiplication requires at least one scalar (found: " + lhsType + " * " + rhsType + ")");
+                return ExpressionType.UNDEFINED;
+            }
+
+            /// '/': rhs moet een SCALAR zijn
+            if (expr instanceof DivideOperation) {
+                if (rhsType != ExpressionType.SCALAR) {
+                    expr.setError("Division requires rhs scalar (found divisor type: " + rhsType + ")");
+                    return ExpressionType.UNDEFINED;
+                }
+                if (lhsType == ExpressionType.SCALAR) return ExpressionType.SCALAR;
+                if (isUnitType(lhsType)) return lhsType;
+                expr.setError("Invalid dividend type for division: " + lhsType);
+                return ExpressionType.UNDEFINED;
+            }
+        }
+
+        return ExpressionType.UNDEFINED;
     }
 
+    /// Helper function: haalt expression type op uit variable types
+    private ExpressionType lookupVariableType(String name) {
+        for (int i = 0; i < variableTypes.getSize(); i++) {
+            HashMap<String, ExpressionType> scope = variableTypes.get(i);
+            if (scope.containsKey(name)) {
+                return scope.get(name);
+            }
+        }
+        return ExpressionType.UNDEFINED;
+    }
+
+
+    /// Helper function: controleert op unit types
+    private boolean isUnitType(ExpressionType t) {
+        return t == ExpressionType.PIXEL || t == ExpressionType.PERCENTAGE;
+    }
+
+    /// Helper function: controleert op niet wiskundige types
+    private boolean isNonNumeric(ExpressionType t) {
+        return t == ExpressionType.COLOR || t == ExpressionType.BOOL || t == ExpressionType.UNDEFINED;
+    }
 
     /// Helper function; recursive call over alle mogelijke node children.
     private void visitChildren(ASTNode node) {
@@ -124,3 +186,4 @@ public class Checker {
 
 
 }
+
