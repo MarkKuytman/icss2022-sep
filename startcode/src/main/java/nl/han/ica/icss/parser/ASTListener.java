@@ -61,13 +61,17 @@ public class ASTListener extends ICSSBaseListener {
 			expressions.push(new VariableReference(ctx.getText()));
 		} else {
 			ASTNode node = currentContainer.peek();
-			node.addChild(new VariableReference(ctx.getText()));
+			if (node == null) node = ast.root;
+			if (node != null) node.addChild(new VariableReference(ctx.getText()));
 		}
 	}
 
 	@Override
 	public void exitVar_value(ICSSParser.Var_valueContext ctx) {
 		ASTNode node = currentContainer.peek();
+		if (node == null) node = ast.root;
+		if (node == null) return;
+
 		if (ctx.COLOR() != null) {
 			node.addChild(new ColorLiteral(ctx.getText()));
 		} else if (ctx.PIXELSIZE() != null) {
@@ -90,6 +94,7 @@ public class ASTListener extends ICSSBaseListener {
 	@Override
 	public void exitIdentity(ICSSParser.IdentityContext ctx) {
 		ASTNode node = currentContainer.peek();
+		if (node == null) return;
 		String name = ctx.getChild(0).getText();
 		Selector sel;
 		if (ctx.ID_IDENT() != null) {
@@ -115,12 +120,14 @@ public class ASTListener extends ICSSBaseListener {
 	@Override
 	public void exitProp_name(ICSSParser.Prop_nameContext ctx) {
 		ASTNode node = currentContainer.peek();
+		if (node == null) return;
 		node.addChild(new PropertyName(ctx.getChild(0).getText()));
 	}
 
 	@Override
 	public void exitProp_value(ICSSParser.Prop_valueContext ctx) {
 		ASTNode node = currentContainer.peek();
+		if (node == null) return;
 		if (ctx.PIXELSIZE() != null) {
 			node.addChild(new PixelLiteral(ctx.getChild(0).getText()));
 		} else if (ctx.COLOR() != null) {
@@ -136,13 +143,10 @@ public class ASTListener extends ICSSBaseListener {
 
 		if (ctx.getChildCount() == 1) {
 			if (ctx.SCALAR() != null) {
-				exp = new ScalarLiteral(ctx.getText());
+				expressions.push(new ScalarLiteral(ctx.getText()));
 			} else if (ctx.PIXELSIZE() != null) {
-				exp = new PixelLiteral(ctx.getText());
-			} else {
-				exp = new VariableReference(ctx.getText());
+				expressions.push(new PixelLiteral(ctx.getText()));
 			}
-			expressions.push(exp);
 			return;
 		}
 
@@ -175,6 +179,11 @@ public class ASTListener extends ICSSBaseListener {
 
 	@Override
 	public void exitIf_clause(ICSSParser.If_clauseContext ctx) {
+		Expression cond = expressions.peek() == null ? null : expressions.pop();
+		ASTNode node = currentContainer.peek();
+		if (node instanceof IfClause) {
+			if (cond != null) node.addChild(cond);
+		}
 		ASTUtils.addChildToParent(currentContainer);
 	}
 
@@ -197,6 +206,6 @@ public class ASTListener extends ICSSBaseListener {
 			}
 		}
 
-		// Uhh exception maybe?
+		// Uhh exception maybe?3
 	}
 }

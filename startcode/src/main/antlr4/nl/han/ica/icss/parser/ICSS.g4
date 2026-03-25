@@ -28,10 +28,6 @@ CLASS_IDENT: '.' [a-z0-9\-]+;
 LOWER_IDENT: [a-z] [a-z0-9\-]*;
 CAPITAL_IDENT: [A-Z] [A-Za-z0-9_]*;
 
-//Maths components
-DIVTIMES: DIV | MUL ;
-SUBADD: PLUS | MIN ;
-
 
 //All whitespace is skipped
 WS: [ \t\r\n]+ -> skip;
@@ -47,9 +43,6 @@ MUL: '*';
 DIV: '/';
 ASSIGNMENT_OPERATOR: ':=';
 
-
-
-
 //--- PARSER: ---
 stylesheet: assignment* style_rule* EOF | EOF;
 
@@ -63,18 +56,16 @@ body_content: (declaration | if_else)*;
 
 declaration: prop_name COLON prop_value SEMICOLON;
 assignment: var_name ASSIGNMENT_OPERATOR var_value SEMICOLON;
-expression: (SCALAR | PIXELSIZE | var_name) | expression DIVTIMES expression | expression SUBADD expression;
+expression: (SCALAR | PIXELSIZE | var_name) | expression (MUL | DIV) expression | expression (PLUS | MIN) expression;
 
 if_else: if_clause else_clause | if_clause ;
-if_clause: IF BOX_BRACKET_OPEN condition BOX_BRACKET_CLOSE OPEN_BRACE body CLOSE_BRACE;
+if_clause: IF BOX_BRACKET_OPEN expression BOX_BRACKET_CLOSE OPEN_BRACE body CLOSE_BRACE;
 else_clause: ELSE OPEN_BRACE body CLOSE_BRACE;
-
-condition: var_name;
 
 var_name: CAPITAL_IDENT;
 var_value: COLOR | PIXELSIZE | TRUE | FALSE;
 
 prop_name: LOWER_IDENT;
-prop_value: PIXELSIZE | COLOR | var_name | expression;
+prop_value: PIXELSIZE | COLOR | expression;
 
 
