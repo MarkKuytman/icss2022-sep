@@ -1,7 +1,5 @@
 package nl.han.ica.icss.checker;
 
-import nl.han.ica.datastructures.HANLinkedList;
-import nl.han.ica.datastructures.IHANLinkedList;
 import nl.han.ica.icss.ast.*;
 import nl.han.ica.icss.ast.literals.*;
 import nl.han.ica.icss.ast.operations.AddOperation;
@@ -10,31 +8,15 @@ import nl.han.ica.icss.ast.operations.MultiplyOperation;
 import nl.han.ica.icss.ast.operations.SubtractOperation;
 import nl.han.ica.icss.ast.types.ExpressionType;
 
-import java.util.HashMap;
-
-
-public class Checker {
-
-    private IHANLinkedList<HashMap<String, ExpressionType>> variableTypes;
-    private int currentScopeLevel = 0;
+public class Checker extends ASTTraveler<ExpressionType> {
 
     public void check(AST ast) {
-        variableTypes = new HANLinkedList<>();
-        variableTypes.addFirst(new HashMap<>());
-        visitNode(ast.root);
+        travel(ast);
     }
 
-    // Pre-order traversal
-    private void visitNode(ASTNode node) {
+    @Override
+    protected void handleNode(ASTNode node) {
         if (node == null) return;
-
-        if (node instanceof Stylerule || node instanceof Stylesheet
-                || node instanceof IfClause || node instanceof ElseClause) {          /// Alle mogelijke plekken waar een nieuwe scope nodig is
-            visitChildrenAndAddScope(node);
-
-            if (node instanceof IfClause) checkIfBoolUsage((IfClause) node);
-            return;
-        }
 
         if (node instanceof VariableAssignment) {
             createVariableAssignment((VariableAssignment) node);
@@ -45,33 +27,29 @@ public class Checker {
         } else if (node instanceof Expression) {
             checkExpressionType((Expression) node);
         }
+    }
 
-        visitChildren(node);
+    @Override
+    protected void handleAfterScope(ASTNode node) {
+        if (node == null) return;
+        if (node instanceof IfClause) checkIfBoolUsage((IfClause) node);
     }
 
     private void createVariableAssignment(VariableAssignment node) {
         VariableReference varRef = node.name;
         ExpressionType type = checkExpressionType(node.expression);
-        variableTypes.getFirst().put(varRef.name, type);
+        createVarInCurrentScope(varRef.name, type);
     }
-
 
     /// CH01: Controleer of er geen variabelen worden gebruikt die niet gedefinieerd zijn
     private void checkVariableIsDefined(VariableReference variableReference) {
         String name = variableReference.name;
-        boolean found = false;
-        for (int i = 0; i < currentScopeLevel; i++) {
-            HashMap<String, ExpressionType> scope = variableTypes.get(i);
-            if (scope.containsKey(name)) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) variableReference.setError("Undefined variable: " + name + ", in scope level:" + currentScopeLevel);
+        ExpressionType found = getVar(variableReference.name);
+        if (found == null) variableReference.setError("Undefined variable: " + name);
     }
 
     /// CH02, CH03 + meer: Recursive controle op alle mogelijke expression types
-    private ExpressionType checkExpressionType(Expression expr) {
+    public ExpressionType checkExpressionType(Expression expr) {
         if (expr == null) return ExpressionType.UNDEFINED;
 
         /// Literals: directe waardes
@@ -85,7 +63,7 @@ public class Checker {
             String refName = ((VariableReference) expr).name;
             ExpressionType refType = lookupVariableType(refName);
             if (refType == ExpressionType.UNDEFINED) {
-                expr.setError("Undefined variable: " + refName + ", in scope level: " + currentScopeLevel);
+                expr.setError("Undefined variable: " + refName);
             }
             return refType;
         }
@@ -166,27 +144,18 @@ public class Checker {
 
     /// CH05 & Helper function: haalt expression type op uit variable types top-down tot het huidige scope level
     private ExpressionType lookupVariableType(String name) {
-        for (int i = 0; i < currentScopeLevel; i++) {
-            HashMap<String, ExpressionType> scope = variableTypes.get(i);
-            if (scope.containsKey(name)) {
-                return scope.get(name);
-            }
-        }
-        return ExpressionType.UNDEFINED;
+        ExpressionType expressionType = getVar(name);
+        return expressionType == null ? ExpressionType.UNDEFINED : expressionType;
     }
 
     /// Helper function: controleert of property een SCALAR waarde verwacht
     private boolean isScalarProperty(String propertyName) {
-        if (propertyName.equals("width")) return true;
-        if (propertyName.equals("height")) return true;
-        return false;
+        return propertyName.equals("width") || propertyName.equals("height");
     }
 
     /// Helper function: controleert of property een COLOR waarde verwacht
     private boolean isColorProperty(String propertyName) {
-        if (propertyName.equals("color")) return true;
-        if (propertyName.equals("background-color")) return true;
-        return false;
+        return propertyName.equals("color") || propertyName.equals("background-color");
     }
 
     /// Helper function: controleert op unit types
@@ -197,25 +166,6 @@ public class Checker {
     /// Helper function: controleert op niet wiskundige types
     private boolean isNonNumeric(ExpressionType t) {
         return t == ExpressionType.COLOR || t == ExpressionType.BOOL || t == ExpressionType.UNDEFINED;
-    }
-
-    /// Helper function; recursive call over alle mogelijke node children.
-    private void visitChildren(ASTNode node) {
-        if (node == null) return;
-        for (ASTNode child : node.getChildren()) visitNode(child);
-    }
-
-    /// Helper function; maakt nieuwe scope aan voor de recursive call op visitChildren()
-    public void visitChildrenAndAddScope(ASTNode node) {
-        if (node == null) return;
-
-        variableTypes.addFirst(new HashMap<>());
-        currentScopeLevel++;
-
-        visitChildren(node);
-
-        variableTypes.removeFirst();
-        currentScopeLevel--;
     }
 
 
