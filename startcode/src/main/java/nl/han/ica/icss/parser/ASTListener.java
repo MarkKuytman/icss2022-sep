@@ -146,6 +146,8 @@ public class ASTListener extends ICSSBaseListener {
 				expressions.push(new ScalarLiteral(ctx.getText()));
 			} else if (ctx.PIXELSIZE() != null) {
 				expressions.push(new PixelLiteral(ctx.getText()));
+			} else if (ctx.TRUE() != null || ctx.FALSE() != null) {
+				expressions.push(new BoolLiteral(ctx.getText()));
 			}
 			return;
 		}

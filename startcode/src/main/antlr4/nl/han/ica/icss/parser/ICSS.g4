@@ -56,7 +56,7 @@ body_content: (declaration | if_else)*;
 
 declaration: prop_name COLON prop_value SEMICOLON;
 assignment: var_name ASSIGNMENT_OPERATOR var_value SEMICOLON;
-expression: (SCALAR | PIXELSIZE | var_name) | expression (MUL | DIV) expression | expression (PLUS | MIN) expression;
+expression: ((TRUE | FALSE) | SCALAR | PIXELSIZE | var_name) | expression (MUL | DIV) expression | expression (PLUS | MIN) expression;
 
 if_else: if_clause else_clause | if_clause ;
 if_clause: IF BOX_BRACKET_OPEN expression BOX_BRACKET_CLOSE OPEN_BRACE body CLOSE_BRACE;

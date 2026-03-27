@@ -11,9 +11,6 @@ import nl.han.ica.icss.ast.operations.SubtractOperation;
 import nl.han.ica.icss.ast.types.ExpressionType;
 
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.locks.Condition;
 
 
 public class Checker {
@@ -33,6 +30,8 @@ public class Checker {
         if (node instanceof Stylerule || node instanceof Stylesheet
                 || node instanceof IfClause || node instanceof ElseClause) {          /// Alle mogelijke plekken waar een nieuwe scope nodig is
             visitChildrenAndAddScope(node);
+
+            if (node instanceof IfClause) checkIfBoolUsage((IfClause) node);
             return;
         }
 
@@ -41,8 +40,7 @@ public class Checker {
         } else if (node instanceof VariableReference) {                                    /// Controleert verdere plekken waar expressies gebruikt worden
             checkVariableIsDefined((VariableReference) node);
         } else if (node instanceof Declaration) {
-            Declaration declaration = (Declaration) node;
-            checkExpressionType(declaration.expression);
+            checkAllowedDeclaration((Declaration) node);
         } else if (node instanceof Expression) {
             checkExpressionType((Expression) node);
         }
@@ -71,7 +69,7 @@ public class Checker {
         if (!found) variableReference.setError("Undefined variable: " + name);
     }
 
-    /// CH02 + meer: Recursive controle op alle mogelijke expression types
+    /// CH02, CH03 + meer: Recursive controle op alle mogelijke expression types
     private ExpressionType checkExpressionType(Expression expr) {
         if (expr == null) return ExpressionType.UNDEFINED;
 
@@ -148,6 +146,23 @@ public class Checker {
         return ExpressionType.UNDEFINED;
     }
 
+    /// CH04: Controleer of bij declaraties het type van de value klopt met de property
+    private void checkAllowedDeclaration(Declaration declaration) {
+        String propertyName = declaration.property.name;
+        ExpressionType expressionType = checkExpressionType(declaration.expression);
+        boolean mismatch = false;
+        if (isColorProperty(propertyName) && !(expressionType == ExpressionType.COLOR)) mismatch = true;
+        if (isScalarProperty(propertyName) && !(expressionType == ExpressionType.PIXEL)) mismatch = true;
+        if (mismatch) declaration.setError("Mismatch of expression type: " + expressionType + " for the property: " + propertyName);
+    }
+
+    /// CH05: Controleer of de conditie bij een if-statement van het type boolean is
+    private void checkIfBoolUsage(IfClause if_clause) {
+        if (if_clause == null) return;
+        ExpressionType expressionType = checkExpressionType(if_clause.conditionalExpression);
+        if (expressionType != ExpressionType.BOOL) if_clause.setError("If clause requires a boolean expression (Was given " + expressionType + ")");
+    }
+
     /// Helper function: haalt expression type op uit variable types
     private ExpressionType lookupVariableType(String name) {
         for (int i = 0; i < variableTypes.getSize(); i++) {
@@ -159,6 +174,19 @@ public class Checker {
         return ExpressionType.UNDEFINED;
     }
 
+    /// Helper function: controleert of property een SCALAR waarde verwacht
+    private boolean isScalarProperty(String propertyName) {
+        if (propertyName.equals("width")) return true;
+        if (propertyName.equals("height")) return true;
+        return false;
+    }
+
+    /// Helper function: controleert of property een COLOR waarde verwacht
+    private boolean isColorProperty(String propertyName) {
+        if (propertyName.equals("color")) return true;
+        if (propertyName.equals("background-color")) return true;
+        return false;
+    }
 
     /// Helper function: controleert op unit types
     private boolean isUnitType(ExpressionType t) {
