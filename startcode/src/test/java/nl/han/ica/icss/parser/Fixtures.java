@@ -326,4 +326,125 @@ public class Fixtures {
 
 		return new AST(stylesheet);
 	}
+
+	public static AST uncheckedLevel4() {
+		Stylesheet stylesheet = new Stylesheet();
+		/*
+			LinkColor := #ff0000;
+			ParWidth := 500px;
+			UseLinkColor := FALSE;
+		 */
+		stylesheet.addChild((new VariableAssignment())
+				.addChild(new VariableReference("LinkColor"))
+				.addChild(new ColorLiteral("#ff0000"))
+		);
+		stylesheet.addChild((new VariableAssignment())
+				.addChild(new VariableReference("ParWidth"))
+				.addChild(new PixelLiteral("500px"))
+		);
+		stylesheet.addChild((new VariableAssignment())
+				.addChild(new VariableReference("UseLinkColor"))
+				.addChild(new BoolLiteral(false))
+		);
+   	    /*
+	        p {
+				AdjustColor := TRUE;
+				background-color: #ffffff;
+				width: ParWidth;
+				if[AdjustColor] {
+	    			color: #124532;
+	    			if[UseLinkColor]{
+	        			bg-color: LinkColor;
+	    			}
+				}
+			}
+			p {
+				background-color: #ffffff;
+				width: ParWidth;
+				if[AdjustColor] {
+	    			color: #124532;
+	    		if[UseLinkColor]{
+	        		background-color: LinkColor;
+	    		} else {
+	        		background-color: #000000;
+	    		}
+	    		height: 20px;
+			}
+}
+	    */
+		stylesheet.addChild((new Stylerule())
+				.addChild(new TagSelector("p"))
+				.addChild((new VariableAssignment())
+						.addChild(new VariableReference("AdjustColor"))
+						.addChild(new BoolLiteral(true))
+				)
+
+				.addChild((new Declaration("background-color"))
+						.addChild(new ColorLiteral("#ffffff")))
+				.addChild((new Declaration("width"))
+						.addChild(new VariableReference("ParWidth")))
+				.addChild((new IfClause())
+						.addChild(new VariableReference("AdjustColor"))
+						.addChild((new Declaration("color")
+								.addChild(new ColorLiteral("#124532"))))
+						.addChild((new IfClause())
+								.addChild(new VariableReference("UseLinkColor"))
+								.addChild(new Declaration("background-color").addChild(new VariableReference("LinkColor")))
+								.addChild((new ElseClause())
+										.addChild(new Declaration("background-color").addChild(new ColorLiteral("#000000")))
+
+								)
+						))
+				.addChild((new Declaration("height"))
+						.addChild(new PixelLiteral("20px")))
+		);
+        /*
+        a {
+	        color: LinkColor;
+        }
+        */
+		stylesheet.addChild((new Stylerule())
+				.addChild(new TagSelector("a"))
+				.addChild((new Declaration("color"))
+						.addChild(new VariableReference("LinkColor"))
+				)
+		);
+        /*
+            #menu {
+        	width: ParWidth + 20px;
+            }
+        */
+		stylesheet.addChild((new Stylerule())
+				.addChild(new IdSelector("#menu"))
+				.addChild((new Declaration("width"))
+						.addChild((new AddOperation())
+								.addChild(new VariableReference("ParWidth"))
+								.addChild(new PixelLiteral("20px"))
+						)
+				)
+		);
+        /*
+
+
+         .menu {
+				color: #000000;
+    			background-color: LinkColor;
+
+			}
+
+        */
+		stylesheet.addChild((new Stylerule())
+				.addChild(new ClassSelector(".menu"))
+
+				.addChild((new Declaration("color"))
+						.addChild(new ColorLiteral("#000000"))
+				)
+				.addChild((new Declaration("background-color"))
+						.addChild(new VariableReference("LinkColor"))
+				)
+
+		);
+
+		return new AST(stylesheet);
+	}
 }

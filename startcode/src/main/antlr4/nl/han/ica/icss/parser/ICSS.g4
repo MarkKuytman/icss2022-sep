@@ -33,6 +33,7 @@ CAPITAL_IDENT: [A-Z] [A-Za-z0-9_]*;
 WS: [ \t\r\n]+ -> skip;
 
 //
+ASSIGNMENT_OPERATOR: ':=';
 OPEN_BRACE: '{';
 CLOSE_BRACE: '}';
 SEMICOLON: ';';
@@ -41,7 +42,6 @@ PLUS: '+';
 MIN: '-';
 MUL: '*';
 DIV: '/';
-ASSIGNMENT_OPERATOR: ':=';
 
 //--- PARSER: ---
 stylesheet: assignment* style_rule* EOF | EOF;
@@ -50,9 +50,9 @@ style_rule: identity OPEN_BRACE body CLOSE_BRACE;
 
 identity: ID_IDENT | CLASS_IDENT | (LOWER_IDENT | CAPITAL_IDENT);
 
-body: body_content;
+body: statement*;
 
-body_content: (declaration | if_else)*;
+statement: assignment | declaration | if_else;
 
 declaration: prop_name COLON prop_value SEMICOLON;
 assignment: var_name ASSIGNMENT_OPERATOR var_value SEMICOLON;

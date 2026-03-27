@@ -16,6 +16,7 @@ import java.util.HashMap;
 public class Checker {
 
     private IHANLinkedList<HashMap<String, ExpressionType>> variableTypes;
+    private int currentScopeLevel = 0;
 
     public void check(AST ast) {
         variableTypes = new HANLinkedList<>();
@@ -59,14 +60,14 @@ public class Checker {
     private void checkVariableIsDefined(VariableReference variableReference) {
         String name = variableReference.name;
         boolean found = false;
-        for (int i = 0; i < variableTypes.getSize(); i++) {
+        for (int i = 0; i < currentScopeLevel; i++) {
             HashMap<String, ExpressionType> scope = variableTypes.get(i);
             if (scope.containsKey(name)) {
                 found = true;
                 break;
             }
         }
-        if (!found) variableReference.setError("Undefined variable: " + name);
+        if (!found) variableReference.setError("Undefined variable: " + name + ", in scope level:" + currentScopeLevel);
     }
 
     /// CH02, CH03 + meer: Recursive controle op alle mogelijke expression types
@@ -84,7 +85,7 @@ public class Checker {
             String refName = ((VariableReference) expr).name;
             ExpressionType refType = lookupVariableType(refName);
             if (refType == ExpressionType.UNDEFINED) {
-                expr.setError("Undefined variable: " + refName);
+                expr.setError("Undefined variable: " + refName + ", in scope level: " + currentScopeLevel);
             }
             return refType;
         }
@@ -163,9 +164,9 @@ public class Checker {
         if (expressionType != ExpressionType.BOOL) if_clause.setError("If clause requires a boolean expression (Was given " + expressionType + ")");
     }
 
-    /// Helper function: haalt expression type op uit variable types
+    /// CH05 & Helper function: haalt expression type op uit variable types top-down tot het huidige scope level
     private ExpressionType lookupVariableType(String name) {
-        for (int i = 0; i < variableTypes.getSize(); i++) {
+        for (int i = 0; i < currentScopeLevel; i++) {
             HashMap<String, ExpressionType> scope = variableTypes.get(i);
             if (scope.containsKey(name)) {
                 return scope.get(name);
@@ -207,9 +208,14 @@ public class Checker {
     /// Helper function; maakt nieuwe scope aan voor de recursive call op visitChildren()
     public void visitChildrenAndAddScope(ASTNode node) {
         if (node == null) return;
+
         variableTypes.addFirst(new HashMap<>());
+        currentScopeLevel++;
+
         visitChildren(node);
+
         variableTypes.removeFirst();
+        currentScopeLevel--;
     }
 
 
