@@ -24,16 +24,16 @@ public abstract class ASTTraveler<T> {
     protected void visitNode(ASTNode node) {
         if (node == null) return;
 
-        if (requiresNewScope(node)) {
-            enterScope();
-            visitChildren(node);
-            exitScope();
-            handleAfterScope(node);
-        }
+        boolean newScope = requiresNewScope(node);
+        if (newScope) enterScope();
 
         handleNode(node);
-
         visitChildren(node);
+
+        if (newScope) {
+            handleAfterScope(node);
+            exitScope();
+        }
 
     }
 

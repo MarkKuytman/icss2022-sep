@@ -4,6 +4,8 @@ import nl.han.ica.icss.ast.*;
 import nl.han.ica.icss.ast.literals.*;
 import nl.han.ica.icss.ast.operations.*;
 
+import java.util.ArrayList;
+
 public class Evaluator extends ASTTraveler<Literal> implements Transform {
 
     @Override
@@ -26,11 +28,8 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
             Declaration declaration = (Declaration) node;
             Literal value = squishExpression(declaration.expression);
             if (value != null) declaration.expression = value;
-        } else if (node instanceof IfClause) {
-            IfClause ifClause = (IfClause) node;
-            Literal value = squishExpression(ifClause.conditionalExpression);
-            if (value != null) ifClause.conditionalExpression = value;
         }
+
         // TODO: Add IfClause squish
     }
 
@@ -113,9 +112,56 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
         return null;
     }
 
+    private void squishIfClausesInChildren(ArrayList<ASTNode> list) {
+        for (int i = 0; i < list.size(); ) {
+            ASTNode child = list.get(i);
+
+            /// base 'for' loop clause
+            if (!(child instanceof IfClause)) {
+                i++;
+                continue;
+            }
+
+            IfClause ic = (IfClause) child;
+            Literal condLit = squishExpression(ic.conditionalExpression);
+            boolean condTrue = (condLit instanceof BoolLiteral) && ((BoolLiteral) condLit).value;
+
+            if (condTrue) {
+                list.remove(i);
+                if (ic.body != null) {
+                    list.addAll(i, ic.body);
+                    return;
+                }
+            } else {
+                if (ic.elseClause != null && ic.elseClause.body != null) {
+                    list.remove(i);
+                    list.addAll(i, ic.elseClause.body);
+                    i += ic.elseClause.body.size();
+                } else {
+                    list.remove(i);
+                }
+            }
+        }
+    }
+
     @Override
     protected void handleAfterScope(ASTNode node) {
-
+        if (node instanceof Stylesheet) {
+            squishIfClausesInChildren(((Stylesheet) node).body);
+            return;
+        }
+        if (node instanceof Stylerule) {
+            squishIfClausesInChildren(((Stylerule) node).body);
+            return;
+        }
+        if (node instanceof ElseClause) {
+            squishIfClausesInChildren(((ElseClause) node).body);
+            return;
+        }
+        if (node instanceof IfClause) {
+            squishIfClausesInChildren(((IfClause) node).body);
+            return;
+        }
     }
 
 
