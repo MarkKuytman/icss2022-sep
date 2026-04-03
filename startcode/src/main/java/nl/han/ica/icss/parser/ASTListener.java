@@ -78,6 +78,8 @@ public class ASTListener extends ICSSBaseListener {
 			node.addChild(new PixelLiteral(ctx.getText()));
 		} else if (ctx.TRUE() != null || ctx.FALSE() != null) {
 			node.addChild(new BoolLiteral(ctx.getText()));
+		} else if (ctx.SCALAR() != null) {
+			node.addChild(new ScalarLiteral(ctx.getText()));
 		}
 	}
 

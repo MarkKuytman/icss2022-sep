@@ -29,8 +29,6 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
             Literal value = squishExpression(declaration.expression);
             if (value != null) declaration.expression = value;
         }
-
-        // TODO: Add IfClause squish
     }
 
     private Literal squishExpression(Expression expression) {
@@ -129,18 +127,38 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
             if (condTrue) {
                 list.remove(i);
                 if (ic.body != null) {
-                    list.addAll(i, ic.body);
+                    squishBodyValues(list, ic.body);
                     return;
                 }
             } else {
                 if (ic.elseClause != null && ic.elseClause.body != null) {
                     list.remove(i);
-                    list.addAll(i, ic.elseClause.body);
+                    squishBodyValues(list, ic.elseClause.body);
                     i += ic.elseClause.body.size();
                 } else {
                     list.remove(i);
                 }
             }
+        }
+    }
+
+    /// Checks for duplicate declarations
+    private void squishBodyValues(ArrayList<ASTNode> parentBody, ArrayList<ASTNode> childBody) {
+        for (ASTNode child : childBody) {
+            if (!(child instanceof Declaration)) continue;
+            Declaration childDecl = (Declaration) child;
+
+            for (int i = 0; i < parentBody.size() - 1; i++) {
+                ASTNode parent = parentBody.get(i);
+                if (parent instanceof Declaration) {
+                    Declaration parDecl = (Declaration) parent;
+                    if (parDecl.property.equals(childDecl.property)) {
+                        parentBody.remove(i);
+                    }
+                }
+            }
+
+            parentBody.add(child);
         }
     }
 
@@ -160,11 +178,6 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
         }
         if (node instanceof IfClause) {
             squishIfClausesInChildren(((IfClause) node).body);
-            return;
         }
     }
-
-
-
-    
 }

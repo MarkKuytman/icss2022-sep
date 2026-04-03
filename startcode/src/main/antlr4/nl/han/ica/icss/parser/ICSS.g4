@@ -63,7 +63,7 @@ if_clause: IF BOX_BRACKET_OPEN expression BOX_BRACKET_CLOSE OPEN_BRACE body CLOS
 else_clause: ELSE OPEN_BRACE body CLOSE_BRACE;
 
 var_name: CAPITAL_IDENT;
-var_value: COLOR | PIXELSIZE | TRUE | FALSE;
+var_value: COLOR | PIXELSIZE | TRUE | FALSE | SCALAR;
 
 prop_name: LOWER_IDENT;
 prop_value: PIXELSIZE | COLOR | expression;
