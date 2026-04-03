@@ -5,6 +5,7 @@ import nl.han.ica.datastructures.IHANLinkedList;
 
 import java.util.HashMap;
 
+/// Generic AST traveler die hergebruikt kan worden voor verschillende doeleinden, zoals de checker, evaluator, etc.
 public abstract class ASTTraveler<T> {
     protected IHANLinkedList<HashMap<String, T>> scopeStack;
 
@@ -12,6 +13,7 @@ public abstract class ASTTraveler<T> {
         scopeStack = new HANLinkedList<>();
     }
 
+    /// Start de reis door de AST, waarbij we een nieuwe scope stack initialiseren en de root node bezoeken.
     public void travel(AST ast){
         scopeStack = new HANLinkedList<>();
         scopeStack.addFirst(new HashMap<>());
@@ -21,6 +23,7 @@ public abstract class ASTTraveler<T> {
     protected abstract void handleNode(ASTNode node);
     protected abstract void handleAfterScope(ASTNode node);
 
+    /// Pre-order traversal van de AST, waarbij we bij elk node checken of we een nieuwe scope moeten openen (zoals bij stylerules, if/else clauses, etc.)
     protected void visitNode(ASTNode node) {
         if (node == null) return;
 

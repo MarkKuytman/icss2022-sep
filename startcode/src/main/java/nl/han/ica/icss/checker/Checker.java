@@ -20,7 +20,7 @@ public class Checker extends ASTTraveler<ExpressionType> {
 
         if (node instanceof VariableAssignment) {
             createVariableAssignment((VariableAssignment) node);
-        } else if (node instanceof VariableReference) {                                    /// Controleert verdere plekken waar expressies gebruikt worden
+        } else if (node instanceof VariableReference) {                                    
             checkVariableIsDefined((VariableReference) node);
         } else if (node instanceof Declaration) {
             checkAllowedDeclaration((Declaration) node);

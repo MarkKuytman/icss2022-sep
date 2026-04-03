@@ -54,10 +54,13 @@ public class Generator extends ASTTraveler<Object> {
 		}
 	}
 
+
+	/// Helper functie: Voegt de juiste hoeveelheid indentatie toe aan de StringBuilder, afhankelijk van de diepte van de huidige Stylerule.
 	private void indent(int level) {
 		for (int i = 0; i < level; i++) sb.append("  ");
 	}
 
+	/// Helper functie: Zet een expressie om naar een string, afhankelijk van het type van de expressie.
 	private String expressionToString(Expression expr) {
 		if (expr == null) return "";
 		if (expr instanceof PixelLiteral) {

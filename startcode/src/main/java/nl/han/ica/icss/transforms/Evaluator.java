@@ -31,6 +31,8 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
         }
     }
 
+    /// Evalueert een expressie, waarbij variabelen worden vervangen door hun waarde, en operaties worden uitgevoerd indien mogelijk.
+    /// Deze methode is recursief, en zal blijven evalueren totdat er geen expressies meer zijn die kunnen worden geëvalueerd.
     private Literal squishExpression(Expression expression) {
         if (expression == null) return null;
 
@@ -110,6 +112,7 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
         return null;
     }
 
+    /// Evalueert if-else clauses, waarbij de conditionele expressie wordt geëvalueerd, en afhankelijk van de uitkomst, de body van de if-clause of de else-clause wordt toegevoegd aan de parent body.
     private void squishIfClausesInChildren(ArrayList<ASTNode> list) {
         for (int i = 0; i < list.size(); ) {
             ASTNode child = list.get(i);
@@ -142,7 +145,7 @@ public class Evaluator extends ASTTraveler<Literal> implements Transform {
         }
     }
 
-    /// Checks for duplicate declarations
+    /// Controleert op dubbele declaraties in de parent body, en verwijdert deze, voordat de child body wordt toegevoegd aan de parent body.
     private void squishBodyValues(ArrayList<ASTNode> parentBody, ArrayList<ASTNode> childBody) {
         for (ASTNode child : childBody) {
             if (!(child instanceof Declaration)) continue;
