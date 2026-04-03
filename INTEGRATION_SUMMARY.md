@@ -12,10 +12,11 @@ In tabel 1 is een overzicht welke uitbreidingen zijn gedaan en hoeveel punten di
 
 _Tabel 1 - Uitbreidingen (status van toevoeging)._
 
-| #   | Omschrijving                                                               | Status     |
-| --- | -------------------------------------------------------------------------- | ---------- |
-| 1   | Delen is ingebracht.                                                       | Toegevoegd |
-| 2   | Checken of er geen dubbele declaraties voorkomen tijdens de transformatie. | Toegevoegd |
+| #   | Omschrijving                                                                          | Status     |
+| --- | ------------------------------------------------------------------------------------- | ---------- |
+| 1   | Delen is ingebracht.                                                                  | Toegevoegd |
+| 2   | Checken of er geen dubbele declaraties voorkomen tijdens de transformatie.            | Toegevoegd |
+| 3   | Ondersteuning voor berekende waardes (optellen, aftrekken, vermenigvuldigen & delen). | Toegevoegd |
 
 Er is ook een nieuwe test, `level4.icss`, erbij gemaakt voor het testen van de parser op nested variable assignments die op hetzelfde niveau worden gebruikt voor controle op een if clause.
 
@@ -48,3 +49,24 @@ Er is ook een nieuwe test, `level4.icss`, erbij gemaakt voor het testen van de p
   ```
 
   Verwachte gedrag: de transformer detecteert dubbele declaraties en handelt volgens beleid (bijv. laatste heeft prioriteit of er wordt een waarschuwing gegeven). In mijn implementatie wordt dubbele declaratie gedetecteerd en expliciet afgehandeld zodat ongewenste duplicatie wordt voorkomen.
+
+- **Ondersteuning voor berekende waardes:**
+
+  Voorbeeld ICSS:
+
+  ```ICSS
+  Divident := 2;
+
+  .box {
+      height: 50px + 25px;
+      width: 100px * Divident;
+      margin: 100px - 50px;
+      padding: 20px / Divident;
+  }
+  ```
+
+  Resultaat (verwacht):
+  - `height: 75px`
+  - `width: 200px`
+  - `margin: 50px`
+  - `padding: 10px`
